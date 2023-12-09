@@ -2,13 +2,12 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: './.env.local' });
 
-async function process(event) {
-  console.log('processing', JSON.stringify(event));
+async function process(message) {
+  console.log('processing new post:', JSON.stringify(message));
 }
 
 export async function handler(event, context) {
-  console.log('launching from handler');
   for (const message of event.Records) {
-    await process(message);
+    await process(message.body);
   }
 }
