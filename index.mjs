@@ -3,13 +3,13 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './.env.local' });
 
 async function process(event) {
-  console.log('processing', event);
+  console.log('processing', JSON.stringify(event));
 }
 
-exports.handler = async function (event) {
+export async function handler(event) {
   console.log('launching from handler');
   await process(event);
-};
+}
 
 // Invoke main() if run directly on command line
 if (import.meta.url === `file://${process.argv[1]}`) {
