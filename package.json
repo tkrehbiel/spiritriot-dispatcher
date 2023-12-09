@@ -1,0 +1,30 @@
+{
+  "name": "spiritriot-dispatcher-service",
+  "version": "0.1.0",
+  "description": "Send notifications when new content is added to a blog.",
+  "main": "index.mjs",
+  "scripts": {
+    "build": "npm install",
+    "test": "true",
+    "run": "node index.mjs",
+    "lint": "eslint",
+    "prettier": "prettier --write ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tkrehbiel/spiritriot-dispatcher-service.git"
+  },
+  "author": "Thomas Krehbiel",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/tkrehbiel/spiritriot-dispatcher-service/issues"
+  },
+  "homepage": "https://github.com/tkrehbiel/spiritriot-dispatcher-service#readme",
+  "devDependencies": {
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}
