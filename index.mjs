@@ -6,13 +6,9 @@ async function process(event) {
   console.log('processing', JSON.stringify(event));
 }
 
-export async function handler(event) {
+export async function handler(event, context) {
   console.log('launching from handler');
-  await process(event);
-}
-
-// Invoke main() if run directly on command line
-if (import.meta.url === `file://${process.argv[1]}`) {
-  console.log('launching from command line');
-  (async () => await process({ message: 'hello world' }))();
+  for (const message of event.Records) {
+    await process(message);
+  }
 }
