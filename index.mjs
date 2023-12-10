@@ -1,4 +1,8 @@
-import { SQSClient, SendMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
+import {
+  SQSClient,
+  SendMessageCommand,
+  DeleteMessageCommand,
+} from '@aws-sdk/client-sqs';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import dotenv from 'dotenv';
 
@@ -32,8 +36,9 @@ async function process(message) {
   try {
     promises.push(sendMessage(process.env.NOTIFIER_QUEUE, message.body));
     promises.push(sendMessage(process.env.WEBMENTION_QUEUE, message.body));
-    await Promise.all(promises)
-      .then((x) => deleteMessage(process.env.INCOMING_QUEUE, message.receiptHandle));
+    await Promise.all(promises).then((x) =>
+      deleteMessage(process.env.INCOMING_QUEUE, message.receiptHandle),
+    );
   } catch (error) {
     console.log(error);
   }
