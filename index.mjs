@@ -1,4 +1,4 @@
-import { SQSClient, SendMessageCommand } from '@aws-sdk/client-sqs';
+import { SQSClient, SendMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import dotenv from 'dotenv';
 
@@ -17,16 +17,30 @@ async function sendMessage(queueName, message) {
   return sqsClient.send(command);
 }
 
+async function deleteMessage(queueName, receipt) {
+  if (!queueName) return;
+  const command = new DeleteMessageCommand({
+    QueueUrl: queueName,
+    ReceiptHandle: receipt,
+  });
+  return sqsClient.send(command);
+}
+
 async function process(message) {
-  console.log('dispatching work for new post:', JSON.stringify(message));
+  console.log('dispatching work for new post:', JSON.stringify(message.body));
   const promises = [];
-  promises.push(sendMessage(process.env.NOTIFIER_QUEUE, message));
-  promises.push(sendMessage(process.env.WEBMENTION_QUEUE, message));
-  await Promise.all(promises);
+  try {
+    promises.push(sendMessage(process.env.NOTIFIER_QUEUE, message.body));
+    promises.push(sendMessage(process.env.WEBMENTION_QUEUE, message.body));
+    await Promise.all(promises)
+      .then((x) => deleteMessage(process.env.INCOMING_QUEUE, message.receiptHandle));
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 export async function handler(event, context) {
   for (const message of event.Records) {
-    await process(message.body);
+    await process(message);
   }
 }
