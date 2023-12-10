@@ -5,7 +5,6 @@ import dotenv from 'dotenv';
 dotenv.config({ path: './.env.local' });
 
 const sqsClient = new SQSClient({
-  region: process.env.AWS_REGION,
   credentials: fromNodeProviderChain(),
 });
 
@@ -21,8 +20,8 @@ async function sendMessage(queueName, message) {
 async function process(message) {
   console.log('dispatching work for new post:', JSON.stringify(message));
   const promises = [];
-  promises.push(sendMessage(process.env.NOTIFIER_QUEUE));
-  promises.push(sendMessage(process.env.WEBMENTION_QUEUE));
+  promises.push(sendMessage(process.env.NOTIFIER_QUEUE, message));
+  promises.push(sendMessage(process.env.WEBMENTION_QUEUE, message));
   await Promise.all(promises);
 }
 
