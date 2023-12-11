@@ -2,11 +2,11 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - npm install --omit=dev
-      - npm test
+      - go test
   build:
     commands:
-      - zip -q -r deployment.zip index.mjs node_modules/*
+      - GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -o bootstrap lambda.go service.go
+      - zip -q -r deployment.zip bootstrap
   post_build:
     commands:
       - echo updating $FUNCTION_NAME
