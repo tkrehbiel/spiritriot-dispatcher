@@ -32,6 +32,7 @@ async function deleteMessage(queueName, receipt) {
 
 async function process(message) {
   console.log('dispatching work for new post:', JSON.stringify(message.body));
+  console.log(process.env);
   const promises = [];
   try {
     promises.push(sendMessage(process.env.NOTIFIER_QUEUE, message.body));
@@ -45,7 +46,10 @@ async function process(message) {
 }
 
 export async function handler(event, context) {
+  console.log(process.env);
+  const promises = [];
   for (const message of event.Records) {
-    await process(message);
+    promises.push(process(message));
   }
+  await Promise.all(promises);
 }
