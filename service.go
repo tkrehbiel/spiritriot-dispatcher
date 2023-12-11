@@ -9,6 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
+// This microservice simply receives a message from one
+// SQS queue and dispatches messages to other SQS queues.
+
 // SQS client interface to allow mocking
 type sqsClient interface {
 	SendMessage(ctx context.Context, params *sqs.SendMessageInput, optFns ...func(*sqs.Options)) (*sqs.SendMessageOutput, error)
@@ -36,6 +39,7 @@ func processMessage(ctx context.Context, svc sqsClient, handle string, body stri
 	if webmentionQueue == "" {
 		log.Fatal("unable to get WEBMENTION_QUEUE")
 	}
+	log.Printf("received incoming message %s: %s", handle, body)
 	if err := sendMessage(ctx, svc, notifierQueue, body); err != nil {
 		return err
 	}
@@ -46,6 +50,7 @@ func processMessage(ctx context.Context, svc sqsClient, handle string, body stri
 }
 
 func sendMessage(ctx context.Context, svc sqsClient, queue string, body string) error {
+	log.Printf("sending outgoing message to %s", queue)
 	_, err := svc.SendMessage(ctx, &sqs.SendMessageInput{
 		QueueUrl:    &queue,
 		MessageBody: &body,
@@ -59,6 +64,7 @@ func deleteMessage(ctx context.Context, svc sqsClient, handle string) error {
 	if incomingQueue == "" {
 		log.Fatal("unable to get INCOMING_QUEUE")
 	}
+	log.Printf("deleting incoming message %s", handle)
 	_, err := svc.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 		QueueUrl:      &incomingQueue,
 		ReceiptHandle: &handle,
