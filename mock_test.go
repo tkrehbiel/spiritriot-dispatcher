@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/stretchr/testify/mock"
@@ -25,4 +28,23 @@ func (m *MockSQSClient) DeleteMessage(ctx context.Context, params *sqs.DeleteMes
 		return o, args.Error(1)
 	}
 	return nil, args.Error(1)
+}
+
+type MockHTTPClient struct {
+	mock.Mock
+}
+
+func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	args := m.Called(req)
+	if o, ok := args.Get(0).(*http.Response); ok {
+		return o, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func mockResponse(body string) *http.Response {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewReader([]byte(body))),
+	}
 }

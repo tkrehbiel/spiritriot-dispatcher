@@ -1,6 +1,6 @@
 Send notifications when new content is added to a blog.
 
-Add a page to the list of known posts.
+~~Add a page to the list of known posts.~~
 
 Scan the content for external links and queue a webmention for each one.
 
