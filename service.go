@@ -4,17 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
-// This microservice simply receives a message from one
-// SQS queue and dispatches messages to other SQS queues.
+// This microservice receives messages from an SQS queue
+// when new posts are available and dispatches messages
+// to a notification queue and webmention queues.
 
 type MicroService struct {
 	HTTPC httpClient
@@ -75,6 +79,7 @@ func (s *MicroService) processMessage(ctx context.Context, handle string, body s
 
 	// queue a webmention for each link
 	for _, link := range links {
+		fmt.Printf("found outgoing link: %s\n", link)
 		var payload = Mention{
 			Source: msg.Url,
 			Target: link,
@@ -107,20 +112,46 @@ func (s *MicroService) scanPost(ctx context.Context, url string) ([]string, erro
 		return nil, err
 	}
 
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	return s.extractLinks(resp.Body)
+}
+
+func (s *MicroService) extractLinks(reader io.Reader) ([]string, error) {
+	doc, err := goquery.NewDocumentFromReader(reader)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
+	// find every link inside an <article> block
 	var links []string
-	doc.Find("a").Each(func(index int, element *goquery.Selection) {
+	doc.Find("article").Find("a").Each(func(index int, element *goquery.Selection) {
 		href, _ := element.Attr("href")
-		text := element.Text()
-		fmt.Printf("found outgoing link: [%s](%s)\n", text, href)
-		links = append(links, href)
+		if s.validateLink(href) {
+			links = append(links, href)
+		}
 	})
 
 	return links, nil
+}
+
+func (s *MicroService) validateLink(href string) bool {
+	if strings.HasPrefix(href, "http://") {
+		// don't mention http links
+		return false
+	}
+	if href[0] == '/' || href[0] == '#' {
+		// ignore relative links and fragments
+		return false
+	}
+	u, err := url.Parse(href)
+	if err != nil {
+		// mangled url
+		return false
+	}
+	if u.Scheme != "https" {
+		// only accept https
+		return false
+	}
+	return true
 }
 
 func (s *MicroService) sendMessage(ctx context.Context, queue string, body string) error {
