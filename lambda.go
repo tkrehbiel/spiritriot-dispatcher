@@ -8,26 +8,26 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 )
 
-func lambdaHandler(ctx context.Context, sqsEvent events.SQSEvent) error {
+func lambdaHandlerSNS(ctx context.Context, snsEvent events.SNSEvent) error {
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-east-1"))
 	if err != nil {
 		log.Fatalf("unable to load SDK config, %v", err)
 	}
 
 	handler := MicroService{
-		HTTPC: &http.Client{},
-		SQSC:  sqs.NewFromConfig(cfg),
+		HTTPClient: &http.Client{},
+		SNSClient:  sns.NewFromConfig(cfg),
 	}
 
-	for _, message := range sqsEvent.Records {
-		handler.HandleMessage(ctx, message.ReceiptHandle, message.Body)
+	for _, message := range snsEvent.Records {
+		handler.HandleMessage(ctx, message.SNS.Message)
 	}
 	return nil
 }
 
 func main() {
-	lambda.Start(lambdaHandler)
+	lambda.Start(lambdaHandlerSNS)
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/stretchr/testify/mock"
 )
@@ -25,6 +26,18 @@ func (m *MockSQSClient) SendMessage(ctx context.Context, params *sqs.SendMessage
 func (m *MockSQSClient) DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput, optFns ...func(*sqs.Options)) (*sqs.DeleteMessageOutput, error) {
 	args := m.Called(ctx, params, optFns)
 	if o, ok := args.Get(0).(*sqs.DeleteMessageOutput); ok {
+		return o, args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+type MockSNSClient struct {
+	mock.Mock
+}
+
+func (m *MockSNSClient) Publish(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
+	args := m.Called(ctx, params, optFns)
+	if o, ok := args.Get(0).(*sns.PublishOutput); ok {
 		return o, args.Error(1)
 	}
 	return nil, args.Error(1)

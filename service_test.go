@@ -7,25 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-func matches(source string, target string, js string) bool {
-	var mention Mention
-	if err := json.Unmarshal([]byte(js), &mention); err != nil {
-		return false
-	}
-	return source == mention.Source && target == mention.Target
-}
-
 func TestProcess(t *testing.T) {
-	os.Setenv("INCOMING_QUEUE", "queue1")
-	os.Setenv("NOTIFIER_QUEUE", "queue2")
-	os.Setenv("WEBMENTION_QUEUE", "queue3")
+	arn := "topicArn"
+	os.Setenv("WEBMENTION_TOPIC", arn)
 
-	handle := "eventHandle"
 	body := "{ \"url\": \"anysource\" }"
 
 	ctx := context.Background()
@@ -35,26 +25,28 @@ func TestProcess(t *testing.T) {
 	mockHTTP := new(MockHTTPClient)
 	mockHTTP.On("Do", mock.Anything).Return(mockResponse(html), nil).Once()
 
-	mockSQS := new(MockSQSClient)
-	mockSQS.On("SendMessage", ctx, mock.MatchedBy(func(input *sqs.SendMessageInput) bool {
-		return *input.QueueUrl == "queue2" && *input.MessageBody == body
-	}), mock.Anything).Return(nil, nil).Once()
-	mockSQS.On("SendMessage", ctx, mock.MatchedBy(func(input *sqs.SendMessageInput) bool {
-		return *input.QueueUrl == "queue3" && matches("anysource", "https://anytarget", *input.MessageBody)
-	}), mock.Anything).Return(nil, nil).Once()
-	mockSQS.On("DeleteMessage", ctx, mock.MatchedBy(func(input *sqs.DeleteMessageInput) bool {
-		return *input.QueueUrl == "queue1" && *input.ReceiptHandle == handle
+	mockSNS := new(MockSNSClient)
+	mockSNS.On("Publish", ctx, mock.MatchedBy(func(input *sns.PublishInput) bool {
+		return *input.TopicArn == arn && matches("anysource", "https://anytarget", *input.Message)
 	}), mock.Anything).Return(nil, nil).Once()
 
 	var svc = MicroService{
-		SQSC:  mockSQS,
-		HTTPC: mockHTTP,
+		SNSClient:  mockSNS,
+		HTTPClient: mockHTTP,
 	}
 
-	err := svc.processMessage(ctx, handle, body)
+	err := svc.processMessage(ctx, body)
 	assert.NoError(t, err)
 
-	mockSQS.AssertExpectations(t)
+	mockSNS.AssertExpectations(t)
+}
+
+func matches(source string, target string, js string) bool {
+	var mention Mention
+	if err := json.Unmarshal([]byte(js), &mention); err != nil {
+		return false
+	}
+	return source == mention.Source && target == mention.Target
 }
 
 func TestExtractLinks_NoArticle(t *testing.T) {
