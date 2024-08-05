@@ -96,6 +96,7 @@ func (s *MicroService) scanPost(ctx context.Context, url string) ([]string, erro
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", "Spirit Riot Dispatcher (+https://github.com/tkrehbiel/spiritriot-dispatcher-service)")
 
 	resp, err := s.HTTPClient.Do(req)
 	if err != nil {
